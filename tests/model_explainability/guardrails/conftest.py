@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any
-
+import os
 import portforward
 import pytest
 from kubernetes.dynamic import DynamicClient
@@ -153,7 +153,40 @@ def hap_detector_route(
         service=hap_detector_isvc.name,
         wait_for_resource=True,
     )
-
+#
+# @pytest.fixture(scope="class")
+# def installed_tempo_operator(
+#     admin_client: DynamicClient,
+#     model_namespace: Namespace,
+# ) -> Generator[None, Any]:
+#     """
+#     Installs Tempo operator and ensures it is ready.
+#     """
+#
+#     operator_ns_name = "openshift-tempo-operator"
+#
+#     operator_ns = Namespace(name=operator_ns_name)
+#     if not operator_ns.exists:
+#         operator_ns.create()
+#
+#     role_arn = os.getenv("ROLEARN")
+#
+#     install_tempo_operator(
+#         admin_client=admin_client,
+#         operator_namespace=operator_ns_name,
+#         channel="stable",
+#         role_arn=role_arn,
+#         timeout=Timeout.TIMEOUT_15MIN,
+#     )
+#
+#     yield
+#
+#     uninstall_operator(
+#         admin_client=admin_client,
+#         name="tempo-product",
+#         operator_namespace=operator_ns_name,
+#         clean_up_namespace=False,
+#     )
 
 @pytest.fixture(scope="class")
 def installed_tempo_operator(admin_client: DynamicClient, model_namespace: Namespace) -> Generator[None, Any]:
@@ -168,7 +201,9 @@ def installed_tempo_operator(admin_client: DynamicClient, model_namespace: Names
 
     package_name = "tempo-product"
     tempo_operator_subscription = Subscription(client=admin_client, namespace=operator_ns.name, name=package_name)
-
+    role_arn = os.getenv("ROLEARN")
+    if not role_arn:
+        raise ValueError("Role ARN is required for Tempo operator installation")
     if not tempo_operator_subscription.exists:
         install_operator(
             admin_client=admin_client,
@@ -179,7 +214,16 @@ def installed_tempo_operator(admin_client: DynamicClient, model_namespace: Names
             operator_namespace=operator_ns.name,
             timeout=Timeout.TIMEOUT_15MIN,
             install_plan_approval="Automatic",
-            starting_csv="tempo-operator.v0.20.0-3",
+            subscription_config={
+                "config": {
+                    "env": [
+                        {
+                            "name": "ROLEARN",
+                            "value": role_arn,
+                        }
+                    ]
+                }
+            }
         )
 
         deployment = Deployment(
@@ -289,7 +333,6 @@ def installed_opentelemetry_operator(admin_client: DynamicClient) -> Generator[N
             operator_namespace=operator_ns.name,
             timeout=Timeout.TIMEOUT_15MIN,
             install_plan_approval="Automatic",
-            starting_csv="opentelemetry-operator.v0.140.0-2",
         )
 
         deployment = Deployment(
@@ -595,3 +638,68 @@ def tempo_traces_service_portforward(admin_client, model_namespace, tempo_stack)
     except Exception as e:
         LOGGER.error(f"Failed to set up port forwarding for {service_name}: {e}")
         raise
+
+def install_tempo_operator(
+    admin_client,
+    operator_namespace: str = "openshift-tempo-operator",
+    channel: str = "stable",
+    starting_csv: str | None = None,
+    role_arn: str | None = None,
+    timeout: int = Timeout.TIMEOUT_15MIN,
+):
+    ns = Namespace(name=operator_namespace)
+
+    if not ns.exists:
+        ns.create()
+
+    role_arn = role_arn or os.getenv("ROLEARN")
+
+    spec = {
+        "channel": channel,
+        "name": "tempo-product",
+        "source": "redhat-operators",
+        "sourceNamespace": "openshift-marketplace",
+        "installPlanApproval": "Automatic",
+    }
+
+    if starting_csv:
+        spec["startingCSV"] = starting_csv
+
+    if role_arn:
+        spec["config"] = {
+            "env": [
+                {
+                    "name": "ROLEARN",
+                    "value": role_arn,
+                }
+            ]
+        }
+
+    subscription_manifest = {
+        "apiVersion": "operators.coreos.com/v1alpha1",
+        "kind": "Subscription",
+        "metadata": {
+            "name": "tempo-product",
+            "namespace": operator_namespace,
+        },
+        "spec": spec,
+    }
+
+    subscription_resource = admin_client.resources.get(
+        api_version="operators.coreos.com/v1alpha1",
+        kind="Subscription",
+    )
+
+    subscription_resource.create(
+        body=subscription_manifest,
+        namespace=operator_namespace,
+    )
+
+    deployment = Deployment(
+        client=admin_client,
+        namespace=operator_namespace,
+        name="tempo-operator-controller",
+        wait_for_resource=True,
+    )
+
+    deployment.wait_for_replicas(timeout=timeout)
