@@ -1,0 +1,118 @@
+import pytest
+from kubernetes.dynamic import DynamicClient
+from ocp_resources.deployment import Deployment
+from ocp_resources.namespace import Namespace
+from ocp_resources.pod import Pod
+
+from tests.ai_safety.evalhub.constants import (
+    EVALHUB_APP_LABEL,
+    EVALHUB_COMPONENT_LABEL,
+    EVALHUB_CONTAINER_NAME,
+    EVALHUB_SERVICE_NAME,
+)
+
+@pytest.mark.parametrize(
+    "model_namespace",
+    [
+        pytest.param(
+            {"name": "test-evalhub-deployment-upgrade"},
+        ),
+    ],
+    indirect=True,
+)
+@pytest.mark.tier1
+@pytest.mark.ai_safety
+class TestEvalHubDeploymentPreUpgrade:
+    """Tests for EvalHub deployment topology for pre-upgrade (pods, containers, labels)."""
+    @pytest.mark.pre_upgrade
+    def test_evalhub_single_pod_single_container_pre_upgrade(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        evalhub_deployment: Deployment,
+    ) -> None:
+        """Verify the EvalHub deployment runs exactly 1 pod with 1 container named 'evalhub'."""
+        pods = list(
+            Pod.get(
+                client=admin_client,
+                namespace=model_namespace.name,
+                label_selector=f"app={EVALHUB_APP_LABEL},component={EVALHUB_COMPONENT_LABEL}",
+            )
+        )
+
+        assert len(pods) == 1, f"Expected 1 EvalHub pod, found {len(pods)}"
+
+        pod = pods[0]
+        containers = pod.instance.spec.containers
+        assert len(containers) == 1, (
+            f"Expected 1 container in EvalHub pod, found {len(containers)}: {[c.name for c in containers]}"
+        )
+        assert containers[0].name == EVALHUB_CONTAINER_NAME, (
+            f"Expected container name '{EVALHUB_CONTAINER_NAME}', got '{containers[0].name}'"
+        )
+
+        # Verify pod labels match what the operator sets in deployment.go lines 64-68
+        pod_labels = pod.instance.metadata.labels
+        expected_labels = {
+            "app": EVALHUB_APP_LABEL,
+            "instance": EVALHUB_SERVICE_NAME,
+            "component": EVALHUB_COMPONENT_LABEL,
+        }
+        for key, expected_value in expected_labels.items():
+            actual_value = pod_labels.get(key)
+            assert actual_value == expected_value, (
+                f"Expected label '{key}={expected_value}', got '{key}={actual_value}'"
+            )
+
+@pytest.mark.parametrize(
+    "model_namespace",
+    [
+        pytest.param(
+            {"name": "test-evalhub-deployment-upgrade"},
+        ),
+    ],
+    indirect=True,
+)
+@pytest.mark.tier1
+@pytest.mark.ai_safety
+class TestEvalHubDeploymentPostUpgrade:
+    """Tests for EvalHub deployment topology for post upgrade (pods, containers, labels)."""
+    @pytest.mark.post_upgrade
+    def test_evalhub_single_pod_single_container_post_upgrade(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        evalhub_deployment: Deployment,
+    ) -> None:
+        """Verify the EvalHub deployment runs exactly 1 pod with 1 container named 'evalhub'."""
+        pods = list(
+            Pod.get(
+                client=admin_client,
+                namespace=model_namespace.name,
+                label_selector=f"app={EVALHUB_APP_LABEL},component={EVALHUB_COMPONENT_LABEL}",
+            )
+        )
+
+        assert len(pods) == 1, f"Expected 1 EvalHub pod, found {len(pods)}"
+
+        pod = pods[0]
+        containers = pod.instance.spec.containers
+        assert len(containers) == 1, (
+            f"Expected 1 container in EvalHub pod, found {len(containers)}: {[c.name for c in containers]}"
+        )
+        assert containers[0].name == EVALHUB_CONTAINER_NAME, (
+            f"Expected container name '{EVALHUB_CONTAINER_NAME}', got '{containers[0].name}'"
+        )
+
+        # Verify pod labels match what the operator sets in deployment.go lines 64-68
+        pod_labels = pod.instance.metadata.labels
+        expected_labels = {
+            "app": EVALHUB_APP_LABEL,
+            "instance": EVALHUB_SERVICE_NAME,
+            "component": EVALHUB_COMPONENT_LABEL,
+        }
+        for key, expected_value in expected_labels.items():
+            actual_value = pod_labels.get(key)
+            assert actual_value == expected_value, (
+                f"Expected label '{key}={expected_value}', got '{key}={actual_value}'"
+            )

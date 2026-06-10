@@ -85,8 +85,14 @@ def _is_evalhub_crd_available(admin_client: DynamicClient) -> bool:
 def evalhub_kueue_cr(
     admin_client: DynamicClient,
     evalhub_kueue_namespace: Namespace,
+    evalhub_kueue_multi_job_local_queue: LocalQueue,
 ) -> Generator[EvalHub, Any, Any]:
-    """Create an EvalHub CR for Kueue tests."""
+    """Create an EvalHub CR for Kueue tests.
+
+    Note: The default queue is configured via the namespace annotation
+    'kueue.x-k8s.io/default-queue', which is set by the
+    evalhub_kueue_multi_job_local_queue fixture.
+    """
     if not _is_evalhub_crd_available(admin_client):
         pytest.fail(
             "EvalHub CRD 'evalhubs.trustyai.opendatahub.io' not available on this cluster. "
