@@ -71,16 +71,28 @@ def _is_evalhub_crd_available(admin_client: DynamicClient) -> bool:
 def evalhub_cr(
     admin_client: DynamicClient,
     model_namespace: Namespace,
+    pytestconfig: pytest.Config,
+    teardown_resources: bool,
 ) -> Generator[EvalHub, Any, Any]:
     """Create an EvalHub custom resource and wait for it to be ready."""
-    with EvalHub(
-        client=admin_client,
-        name="evalhub",
-        namespace=model_namespace.name,
-        database={"type": "sqlite"},
-        wait_for_resource=True,
-    ) as evalhub:
+    if pytestconfig.option.post_upgrade:
+        evalhub = EvalHub(
+            client=admin_client,
+            name="evalhub",
+            namespace=model_namespace.name,
+        )
         yield evalhub
+        evalhub.clean_up()
+    else:
+        with EvalHub(
+            client=admin_client,
+            name="evalhub",
+            namespace=model_namespace.name,
+            database={"type": "sqlite"},
+            wait_for_resource=True,
+            teardown=teardown_resources,
+        ) as evalhub:
+            yield evalhub
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +176,7 @@ def evalhub_deployment(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     evalhub_cr: EvalHub,
+    pytestconfig: pytest.Config,
 ) -> Deployment:
     """Wait for the EvalHub deployment to become available."""
     deployment = Deployment(
@@ -171,7 +184,8 @@ def evalhub_deployment(
         name=evalhub_cr.name,
         namespace=model_namespace.name,
     )
-    deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
+    if not pytestconfig.option.post_upgrade:
+        deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
     return deployment
 
 
@@ -180,14 +194,22 @@ def evalhub_route(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     evalhub_deployment: Deployment,
+    pytestconfig: pytest.Config,
 ) -> Route:
     """Get the Route created by the operator for the EvalHub service."""
-    return Route(
-        client=admin_client,
-        name=evalhub_deployment.name,
-        namespace=model_namespace.name,
-        ensure_exists=True,
-    )
+    if pytestconfig.option.post_upgrade:
+        return Route(
+            client=admin_client,
+            name=evalhub_deployment.name,
+            namespace=model_namespace.name,
+        )
+    else:
+        return Route(
+            client=admin_client,
+            name=evalhub_deployment.name,
+            namespace=model_namespace.name,
+            ensure_exists=True,
+        )
 
 
 @pytest.fixture(scope="class")
