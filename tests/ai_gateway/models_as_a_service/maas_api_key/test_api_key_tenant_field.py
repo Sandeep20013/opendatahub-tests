@@ -4,7 +4,7 @@ import pytest
 import requests
 import structlog
 
-from tests.ai_gateway.models_as_a_service.maas_api_key.utils import (
+from tests.model_serving.maas_billing.maas_api_key.utils import (
     assert_tenant_field,
     get_api_key,
     list_api_keys,

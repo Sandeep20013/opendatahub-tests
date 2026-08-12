@@ -12,11 +12,11 @@ from ocp_resources.namespace import Namespace
 from pytest_testconfig import config as py_config
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
-from tests.ai_gateway.models_as_a_service.multitenancy.aitenant.utils import (
+from tests.model_serving.maas_billing.multitenancy.aitenant.utils import (
     AITENANT_INFRA_NAMESPACE,
     verify_aitenant_ready,
 )
-from tests.ai_gateway.models_as_a_service.upgrade.utils import (
+from tests.model_serving.maas_billing.upgrade.utils import (
     DEFAULT_AITENANT_NAME,
     MaaSBaseline,
     verify_maas_auth_policy_exists,
@@ -24,17 +24,18 @@ from tests.ai_gateway.models_as_a_service.upgrade.utils import (
     verify_maas_subscription_not_mutated,
     verify_maas_subscription_ready,
 )
-from tests.ai_gateway.models_as_a_service.utils import (
+from tests.model_serving.maas_billing.utils import (
+    MaaSTenantResource,
+    dsc_uses_aigateway_maas_schema,
     gateway_probe_reaches_maas_api,
     verify_maas_gateway_programmed,
-    verify_maas_tenant_config_ready,
+    verify_maas_tenant_ready,
 )
 from utilities.constants import ApiGroups
 from utilities.general import generate_random_name
 from utilities.resources.aigateway import AIGateway
 from utilities.resources.aitenant import AITenant
 from utilities.resources.maas_config import Config as MaaSConfig
-from utilities.resources.maastenantconfig import MaasTenantConfig
 
 LOGGER = structlog.get_logger(name=__name__)
 
@@ -64,10 +65,10 @@ class TestPreUpgradeMaaS:
 
     def test_maas_tenant_ready(
         self,
-        maas_upgrade_tenant: MaasTenantConfig,
+        maas_upgrade_tenant: MaaSTenantResource,
     ) -> None:
-        """Verify default-tenant MaasTenantConfig CR is Ready before upgrade."""
-        verify_maas_tenant_config_ready(maas_tenant_config=maas_upgrade_tenant)
+        """Verify default-tenant MaaS tenant CR is Ready before upgrade."""
+        verify_maas_tenant_ready(tenant_resource=maas_upgrade_tenant)
 
     def test_maas_model_ref_created(
         self,
@@ -95,6 +96,8 @@ class TestPreUpgradeMaaS:
         admin_client: DynamicClient,
     ) -> None:
         """Given cluster is on pre-upgrade version, when checking for AIGateway CR, then it should not exist."""
+        if not dsc_uses_aigateway_maas_schema(admin_client):
+            pytest.skip("AIGateway CR checks apply only when DSC uses aigateway MaaS schema (3.5+)")
         aigateway = AIGateway(
             client=admin_client,
             name="default-aigateway",
@@ -108,6 +111,8 @@ class TestPreUpgradeMaaS:
         admin_client: DynamicClient,
     ) -> None:
         """Given cluster is on pre-upgrade version, MaaS Config CRD and CR should not exist."""
+        if not dsc_uses_aigateway_maas_schema(admin_client):
+            pytest.skip("MaaS Config CR checks apply only when DSC uses aigateway MaaS schema (3.5+)")
         config_crd = CustomResourceDefinition(
             client=admin_client,
             name=f"configs.{ApiGroups.MAAS_IO}",
@@ -143,10 +148,10 @@ class TestPostUpgradeMaaS:
     @pytest.mark.dependency(name="test_default_tenant_survives_upgrade")
     def test_default_tenant_survives_upgrade(
         self,
-        maas_upgrade_tenant: MaasTenantConfig,
+        maas_upgrade_tenant: MaaSTenantResource,
     ) -> None:
-        """Verify default-tenant MaasTenantConfig survived the operator upgrade."""
-        verify_maas_tenant_config_ready(maas_tenant_config=maas_upgrade_tenant)
+        """Verify default-tenant MaaS tenant CR survived the operator upgrade."""
+        verify_maas_tenant_ready(tenant_resource=maas_upgrade_tenant)
 
     @pytest.mark.dependency(
         name="test_maas_gateway_survives_upgrade",
