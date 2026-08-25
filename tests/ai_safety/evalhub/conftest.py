@@ -1,9 +1,9 @@
 import base64
+import os
 import shlex
 import uuid
 from collections.abc import Callable, Generator
 from typing import Any
-import os
 
 import pytest
 import structlog
@@ -46,6 +46,8 @@ from tests.ai_safety.evalhub.constants import (
     GARAK_PROVIDER_ID,
     GARAK_QUICK_BENCHMARK_ID,
     GARAK_SIMPLE_PROVIDER_ID,
+    GIT_BAD_CREDS_SECRET_NAME,
+    GIT_CREDS_SECRET_NAME,
     MINIO_MC_IMAGE,
     MINIO_UPLOADER_SECURITY_CONTEXT,
     OPERATOR_OTEL_SERVICE_NAME,
@@ -61,12 +63,11 @@ from tests.ai_safety.evalhub.constants import (
     SIMPLE_MINIO_ACCESS_KEY,
     SIMPLE_MINIO_BUCKET,
     SIMPLE_MINIO_SECRET_KEY,
-    GIT_BAD_CREDS_SECRET_NAME,
-    GIT_CREDS_SECRET_NAME,
 )
 from tests.ai_safety.evalhub.kueue.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE
 from tests.ai_safety.evalhub.utils import (
     MLflowWithWorkspaces,
+    build_git_job_payload,
     build_pvc_job_payload,
     delete_evalhub_job,
     is_evalhub_crd_available,
@@ -74,7 +75,6 @@ from tests.ai_safety.evalhub.utils import (
     submit_garak_job,
     tenant_rbac_ready,
     wait_for_service_account,
-    build_git_job_payload
 )
 from tests.ai_safety.image_constants import AiSafetyImages
 from utilities.certificates_utils import create_ca_bundle_file
