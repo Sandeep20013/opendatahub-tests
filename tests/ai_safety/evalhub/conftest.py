@@ -1875,7 +1875,7 @@ def git_bad_creds_secret(
         name=GIT_BAD_CREDS_SECRET_NAME,
         string_data={
             "username": "testuser",
-            "password": "invalid-token-value",
+            "password": "invalid-token-value",  # pragma: allowlist secret
         },
     ) as secret:
         yield secret
