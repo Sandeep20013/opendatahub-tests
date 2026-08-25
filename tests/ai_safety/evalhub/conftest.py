@@ -3,6 +3,7 @@ import shlex
 import uuid
 from collections.abc import Callable, Generator
 from typing import Any
+import os
 
 import pytest
 import structlog
@@ -60,6 +61,8 @@ from tests.ai_safety.evalhub.constants import (
     SIMPLE_MINIO_ACCESS_KEY,
     SIMPLE_MINIO_BUCKET,
     SIMPLE_MINIO_SECRET_KEY,
+    GIT_BAD_CREDS_SECRET_NAME,
+    GIT_CREDS_SECRET_NAME,
 )
 from tests.ai_safety.evalhub.kueue.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE
 from tests.ai_safety.evalhub.utils import (
@@ -71,6 +74,7 @@ from tests.ai_safety.evalhub.utils import (
     submit_garak_job,
     tenant_rbac_ready,
     wait_for_service_account,
+    build_git_job_payload
 )
 from tests.ai_safety.image_constants import AiSafetyImages
 from utilities.certificates_utils import create_ca_bundle_file
@@ -1820,7 +1824,6 @@ def git_private_repo_config() -> dict[str, str]:
     Optional:
       EVALHUB_GIT_PRIVATE_REPO_REF       — ref to clone (defaults to "main")
     """
-    import os
 
     url = os.environ.get("EVALHUB_GIT_PRIVATE_REPO_URL", "")
     username = os.environ.get("EVALHUB_GIT_PRIVATE_REPO_USERNAME", "")
@@ -1846,7 +1849,6 @@ def git_test_creds_secret(
     git_private_repo_config: dict[str, str],
 ) -> Generator[Secret, Any, Any]:
     """Kubernetes Secret with valid HTTPS basic auth credentials for the private repo."""
-    from tests.ai_safety.evalhub.constants import GIT_CREDS_SECRET_NAME
 
     with Secret(
         client=admin_client,
@@ -1866,7 +1868,6 @@ def git_bad_creds_secret(
     tenant_a_namespace: Namespace,
 ) -> Generator[Secret, Any, Any]:
     """Kubernetes Secret with invalid git credentials for negative testing."""
-    from tests.ai_safety.evalhub.constants import GIT_BAD_CREDS_SECRET_NAME
 
     with Secret(
         client=admin_client,
@@ -1889,7 +1890,6 @@ def submit_git_job(
     evalhub_vllm_emulator_service: Service,
 ) -> Generator[Callable[..., str], Any, Any]:
     """Factory fixture: submit git-backed evaluation jobs with guaranteed cleanup."""
-    from tests.ai_safety.evalhub.utils import build_git_job_payload
 
     job_ids: list[str] = []
 
