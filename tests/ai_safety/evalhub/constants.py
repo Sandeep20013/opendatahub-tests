@@ -107,6 +107,12 @@ PVC_TEST_DATA_NAME: str = "evalhub-test-data"
 PVC_TEST_DATA_SIZE: str = "2Gi"
 PVC_TOKENIZER_PATH: str = "/test_data/tokenizer"
 
+# Git storage source (RHAISTRAT-2058)
+GIT_CLONE_INIT_CONTAINER_NAME: str = "init"
+GIT_TEST_DATA_MOUNT_PATH: str = "/test_data"
+GIT_CREDS_SECRET_NAME: str = "git-test-creds"
+GIT_BAD_CREDS_SECRET_NAME: str = "git-bad-creds"
+
 # Hardware profile
 EVALHUB_DEFAULT_HARDWARE_PROFILE: str = "default-profile"
 
