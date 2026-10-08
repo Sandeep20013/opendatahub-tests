@@ -166,7 +166,7 @@ OTLP_INDICATORS: tuple[str, ...] = (
 RECONCILE_DURATION_METRIC: str = "evalhub_controller_reconcile_duration_seconds"
 RECONCILE_TOTAL_METRIC: str = "evalhub_controller_reconcile_total"
 RECONCILE_ERRORS_METRIC: str = "evalhub_controller_reconcile_errors_total"
-MANAGED_INSTANCES_METRIC: str = "evalhub_managed_instances_total"
+MANAGED_INSTANCES_METRIC: str = "evalhub_controller_managed_instances"
 JOB_FAILURE_EVENTS_METRIC: str = "evalhub_job_failure_events_total"
 
 EVALHUB_RECONCILE_METRICS: tuple[str, ...] = (
@@ -174,7 +174,6 @@ EVALHUB_RECONCILE_METRICS: tuple[str, ...] = (
     RECONCILE_TOTAL_METRIC,
     RECONCILE_ERRORS_METRIC,
     MANAGED_INSTANCES_METRIC,
-    JOB_FAILURE_EVENTS_METRIC,
 )
 
 # Metric label keys
@@ -191,19 +190,23 @@ RESULT_ERROR: str = "error"
 # Metric label values — bounded error_type enumeration
 ERROR_TYPE_DEPLOYMENT_CREATE_FAILED: str = "deployment_create_failed"
 ERROR_TYPE_SERVICE_UPDATE_FAILED: str = "service_update_failed"
-ERROR_TYPE_OTHER: str = "other"
+ERROR_TYPE_CONFLICT: str = "conflict"
+ERROR_TYPE_RBAC: str = "rbac"
+ERROR_TYPE_OTHER: str = "not-found"
 
 EVALHUB_ERROR_TYPES: tuple[str, ...] = (
     ERROR_TYPE_DEPLOYMENT_CREATE_FAILED,
     ERROR_TYPE_SERVICE_UPDATE_FAILED,
+    ERROR_TYPE_CONFLICT,
+    ERROR_TYPE_RBAC,
     ERROR_TYPE_OTHER,
 )
 
 # Controller label value used in all metrics
 EVALHUB_CONTROLLER_LABEL_VALUE: str = "evalhub"
 
-# Operator metrics port (kube-rbac-proxy)
-OPERATOR_METRICS_PORT: int = 8080
+# Operator metrics port
+OPERATOR_METRICS_PORT: int = 8443
 
 # OTEL trace span names emitted by the EvalHub controller
 SPAN_RECONCILE: str = "evalhub.reconcile"
@@ -237,6 +240,9 @@ OTEL_TRACE_COLLECTOR_LABELS: dict[str, str] = {"app": "otel-trace-collector"}
 
 # Operator pod label selector
 OPERATOR_POD_LABEL_SELECTOR: str = "control-plane=trustyai-service-operator"
+
+# Operator metrics service
+OPERATOR_METRICS_SERVICE_NAME: str = "trustyai-service-operator-metrics-service"
 
 # Operator service name in OTEL traces
 OPERATOR_OTEL_SERVICE_NAME: str = "trustyai-service-operator"
