@@ -75,18 +75,20 @@ def get_ca_bundle(client: DynamicClient, deployment_mode: str) -> str:
 
     Args:
         client (DynamicClient): DynamicClient object
-        deployment_mode (str): The deployment mode. Can be "serverless", "model-mesh" or "raw-deployment"
+        deployment_mode (str): The deployment mode. Can be "serverless", "model-mesh", "raw-deployment", "standard", or "knative"
 
     Returns:
         str: The path to the ca bundle file. If cert is not created, return empty string
 
     Raises:
-            ValueError: If deployment_mode is not "serverless", "model-mesh" or "raw-deployment"
+            ValueError: If deployment_mode is not valid
 
     """
     if deployment_mode in (
         KServeDeploymentType.SERVERLESS,
         KServeDeploymentType.RAW_DEPLOYMENT,
+        KServeDeploymentType.STANDARD,
+        KServeDeploymentType.KNATIVE,
     ):
         if is_managed_cluster(client):
             LOGGER.info("Running on managed cluster, not using ca bundle")

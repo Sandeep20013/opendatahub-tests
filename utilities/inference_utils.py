@@ -117,7 +117,7 @@ class Inference:
         """
         labels = self.inference_service.labels
 
-        if self.deployment_mode == KServeDeploymentType.RAW_DEPLOYMENT:
+        if self.deployment_mode in (KServeDeploymentType.RAW_DEPLOYMENT, KServeDeploymentType.STANDARD):
             if isinstance(self.inference_service, InferenceGraph):
                 # For InferenceGraph, the logic is similar as in Serverless. Only the label is different.
                 return not (labels and labels.get(Labels.Kserve.NETWORKING_KSERVE_IO) == "cluster-local")
@@ -700,9 +700,11 @@ def create_isvc(
 
     if enable_auth:
         # model mesh auth is set in ServingRuntime
-        if deployment_mode == KServeDeploymentType.SERVERLESS:
-            _annotations[Annotations.KserveAuth.SECURITY] = "true"
-        elif deployment_mode == KServeDeploymentType.RAW_DEPLOYMENT:
+        if deployment_mode in (
+            KServeDeploymentType.SERVERLESS,
+            KServeDeploymentType.RAW_DEPLOYMENT,
+            KServeDeploymentType.STANDARD,
+        ):
             _annotations[Annotations.KserveAuth.SECURITY] = "true"
 
     # default to True if deployment_mode is Serverless (default behavior of Serverless) if was not provided by the user
@@ -710,7 +712,7 @@ def create_isvc(
     if external_route is None and deployment_mode == KServeDeploymentType.SERVERLESS:
         external_route = True
 
-    if external_route and deployment_mode == KServeDeploymentType.RAW_DEPLOYMENT:
+    if external_route and deployment_mode in (KServeDeploymentType.RAW_DEPLOYMENT, KServeDeploymentType.STANDARD):
         labels[Labels.Kserve.NETWORKING_KSERVE_IO] = Labels.Kserve.EXPOSED
 
     if deployment_mode == KServeDeploymentType.SERVERLESS and external_route is False:

@@ -352,7 +352,11 @@ def wait_for_isvc_deployment_registered_by_trustyai_service(
     trustyai_service = TrustyAIService(name=TRUSTYAI_SERVICE_NAME, namespace=isvc.namespace, ensure_exists=True)
 
     deployment_mode = isvc.instance.metadata.annotations.get("serving.kserve.io/deploymentMode", "")
-    scheme = "https" if deployment_mode == KServeDeploymentType.RAW_DEPLOYMENT else "http"
+    scheme = (
+        "https"
+        if deployment_mode in (KServeDeploymentType.RAW_DEPLOYMENT, KServeDeploymentType.STANDARD)
+        else "http"
+    )
 
     def _get_deployments() -> list[Deployment]:
         return list(
